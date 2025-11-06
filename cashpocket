@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CashPocket • Enhanced Dashboard</title>
+  <style>
+    :root{
+      --bg:#F7FFFC; --card:#ffffff; --text:#0f172a; --muted:#64748b;
+      --mint:#22c58b; --mint-600:#14b079; --sky:#cfe8ff; --ring:#a7f3d0; --ink:#111827;
+      --border:#ecf0f6; --shadow:0 10px 30px rgba(2,6,23,.06);
+      --grad1:linear-gradient(135deg, rgba(34,197,139,.14), rgba(203,232,255,.22));
+      --grad2:linear-gradient(135deg, rgba(34,197,139,.25), rgba(203,232,255,.35));
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font:14px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .app{min-height:100dvh;display:flex;flex-direction:column;padding:22px}
+
+    /* Header */
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .brand{font-weight:900;font-size:22px;color:var(--mint);letter-spacing:.2px}
+    .pill{background:#fff;border:1px solid var(--border);border-radius:12px;padding:8px 12px;box-shadow:0 6px 18px rgba(17,24,39,.06)}
+
+    /* Layout */
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media (min-width:980px){.grid{grid-template-columns:2fr 1fr}}
+
+    /* Cards */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:18px;position:relative}
+    .card::before{content:"";position:absolute;inset:-1px;border-radius:18px;background:var(--grad1);opacity:0;transition:opacity .25s}
+    .card:hover::before{opacity:1}
+    .card > *{position:relative}
+    .title{font-weight:800;margin:0 0 8px;letter-spacing:.2px}
+    .muted{color:var(--muted)}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+
+    /* Fancy numbers */
+    .num{font-size:32px;font-weight:900;letter-spacing:.2px}
+
+    /* Progress */
+    .progress{height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+    .bar{height:100%;background:var(--mint);width:0%;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+
+    /* Buttons */
+    .btn{cursor:pointer;border:none;border-radius:12px;padding:10px 14px;font-weight:700;transition:transform .06s ease, background .2s ease,opacity .2s ease}
+    .btn:active{transform:translateY(1px)}
+    .btn-primary{background:var(--mint);color:#fff}
+    .btn-primary:hover{background:var(--mint-600)}
+    .btn-ghost{background:#fff;border:1px solid var(--border);color:var(--ink)}
+    .btn[disabled]{opacity:.55;cursor:not-allowed}
+    .chip{border:1px solid var(--border);border-radius:999px;padding:6px 10px;background:#fff}
+
+    /* Radial */
+    .radial{position:relative;width:96px;height:96px}
+    .radial svg{transform:rotate(-90deg)}
+    .radial .label{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;color:#334155}
+
+    /* Leaderboard */
+    .lb-row{display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:10px 12px;transition:transform .12s}
+    .lb-row:hover{transform:translateY(-2px)}
+    .medal{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;color:#fff;font-weight:800}
+    .medal.gold{background:linear-gradient(135deg,#ffcf33,#ffd966)}
+    .medal.silver{background:linear-gradient(135deg,#cfd8dc,#eceff1)}
+    .medal.bronze{background:linear-gradient(135deg,#d7976a,#f0b184)}
+
+    /* Modal */
+    .modal{position:fixed;inset:0;background:rgba(2,6,23,.35);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal.open{display:flex}
+    .sheet{width:min(560px,92vw);background:#fff;border:1px solid var(--border);border-radius:18px;box-shadow:0 30px 70px rgba(2,6,23,.18);padding:18px}
+    .sheet h3{margin:4px 0 10px}
+    .field{display:grid;gap:6px;margin:10px 0}
+    .field label{font-weight:700}
+    .field input,.field select,.field textarea{border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:inherit}
+
+    /* Toast */
+    .toast{position:fixed;right:22px;bottom:22px;background:#0f172a;color:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.18);opacity:0;transform:translateY(12px);transition:opacity .3s, transform .3s;z-index:70}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast small{display:block;color:#cbd5e1}
+
+    /* Confetti */
+    #confetti{position:fixed;inset:0;pointer-events:none;z-index:80}
+    .confetto{position:absolute;width:10px;height:18px;border-radius:2px;opacity:0;animation:confetti-fall 1.6s ease-out forwards}
+    @keyframes confetti-fall{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--cx), var(--cy)) rotate(var(--rot))}}
+
+    /* Premium micro-anim */
+    .glow{background:var(--grad2);filter:blur(22px);opacity:.45;position:absolute;inset:-20px;border-radius:24px;z-index:0}
+    .card .content{position:relative;z-index:1}
+
+    .ring{box-shadow:0 0 0 3px var(--ring)}
+    .mt4{margin-top:4px}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">CashPocket</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="pill muted" id="greet">Good morning 👋 Aman</div>
+        <div class="pill muted" id="todayPill">17 Aug</div>
+        <select id="lang" class="pill" title="Language">
+          <option value="en">English</option>
+          <option value="hi">हिंदी</option>
+        </select>
+      </div>
+    </header>
+
+    <main class="grid">
+      <!-- LEFT COLUMN -->
+      <section style="display:grid;gap:16px">
+        <!-- Allowance Overview -->
+        <div class="card" id="allowanceCard">
+          <div class="glow"></div>
+          <div class="content">
+            <h3 class="title" data-i18n="allowance_title">Allowance Overview</h3>
+            <div class="row">
+              <div>
+                <div class="num">₹<span id="remaining">1865</span></div>
+                <div class="muted mt4" data-i18n="left_month">left this month</div>
+              </div>
+              <div title="Wallet" style="font-size:28px;color:var(--mint)">💳</div>
+            </div>
+            <div class="progress mt12"><div class="bar" id="allowanceBar" style="width:0%"></div></div>
+            <div class="muted mt8" data-i18n="baseline">Avg allowance baseline: ₹<span id="baseline">4,918</span> 😬</div>
+          </div>
+        </div>
+
+        <!-- UPI Spend Summary + mini sparkline -->
+        <div class="card">
+          <h3 class="title" data-i18n="upi_summary">UPI Spend Summary</h3>
+          <div class="row" style="margin-bottom:8px">
+            <div class="row" style="gap:8px"><span style="font-size:18px">📈</span><div style="font-weight:800;font-size:20px">₹<span id="spentToday">312</span> <span data-i18n="spent_today">spent today</span></div></div>
+            <div class="chip" id="addNoteBtn">📝 <span data-i18n="add_note">Add note</span></div>
+          </div>
+          <svg id="miniChart" viewBox="0 0 320 120" width="100%" height="140" style="display:block">
+            <line x1="10" y1="110" x2="310" y2="110" stroke="#e5e7eb"/>
+            <line x1="10" y1="10" x2="10" y2="110" stroke="#e5e7eb"/>
+            <polyline id="chartLine" fill="none" stroke="#22c58b" stroke-width="3" points=""/>
+            <g id="chartDots"></g>
+            <g id="chartLabels" fill="#64748b" font-size="10"></g>
+          </svg>
+        </div>
+
+        <!-- Budget Breakdown (New Feature 1) -->
+        <div class="card">
+          <h3 class="title" data-i18n="breakdown">Budget Breakdown</h3>
+          <canvas id="donut" width="360" height="180" style="width:100%;height:180px"></canvas>
+          <div class="muted mt8" id="breakdownLegend"></div>
+        </div>
+
+        <!-- Loan Tracker -->
+        <div class="card">
+          <h3 class="title" data-i18n="loan_tracker">Loan Tracker</h3>
+          <div class="row" style="gap:16px">
+            <div class="radial" aria-label="Loan repayment progress">
+              <svg width="96" height="96">
+                <circle cx="48" cy="48" r="38" stroke="#e5e7eb" stroke-width="10" fill="none"></circle>
+                <circle id="loanArc" cx="48" cy="48" r="38" stroke="#22c58b" stroke-width="10" stroke-linecap="round" fill="none" stroke-dasharray="0 999"></circle>
+              </svg>
+              <div class="label"><span id="loanPct" style="font-size:14px">75%</span></div>
+            </div>
+            <div>
+              <div style="font-weight:700">₹7,500 of ₹10,000</div>
+              <button class="btn btn-ghost mt8" id="addLoanBtn">＋ <span data-i18n="add_loan">Add another loan</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN -->
+      <aside style="display:grid;gap:16px">
+        <!-- Smart Savings & Quick Save -->
+        <div class="card">
+          <h3 class="title" data-i18n="save_today">Save today & stay on track 😎</h3>
+          <div class="mt8" style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost" data-save="10">Save ₹10</button>
+            <button class="btn btn-ghost" data-save="50">Save ₹50</button>
+            <button class="btn btn-ghost" data-save="100">Save ₹100</button>
+          </div>
+          <button id="saveNow" class="btn btn-primary mt12">🏆 Save Now (₹50)</button>
+        </div>
+
+        <!-- Active Challenge (Create your own) -->
+        <div class="card" id="activeChallengeCard">
+          <div class="row">
+            <h3 class="title" data-i18n="challenge_title">Your Challenge</h3>
+            <button class="btn btn-ghost" id="openChallenge">＋ <span data-i18n="new_challenge">New</span></button>
+          </div>
+          <div class="muted" id="challengeName">₹500 Challenge</div>
+          <div class="progress mt8"><div class="bar" id="challengeBar" style="width:45%"></div></div>
+          <div class="muted mt8"><span data-i18n="you_are">You're</span> <b><span id="challengePct">45</span>%</b> <span data-i18n="there">there</span> – <span data-i18n="keep_going">keep going</span> 🚀</div>
+          <div id="badge" class="pill" style="display:none;margin-top:12px;background:#ecfeff;border-color:#a5f3fc;color:#065f46">👑 Smart Saver Streak unlocked! Claim your badge.</div>
+        </div>
+
+        <!-- Leaderboard (Enhanced) -->
+        <div class="card">
+          <div class="row">
+            <h3 class="title" data-i18n="leaderboard">Leaderboard</h3>
+            <div>
+              <select id="lbScope" class="chip">
+                <option value="college">College</option>
+                <option value="global">Global</option>
+                <option value="week">This Week</option>
+              </select>
+            </div>
+          </div>
+          <div id="leaders" class="mt12" style="display:grid;gap:8px"></div>
+          <button class="btn btn-ghost mt12" id="viewLB">View Full Leaderboard</button>
+        </div>
+
+        <!-- Reminders + Referral + Notes (New Features) -->
+        <div class="card">
+          <h3 class="title" data-i18n="extras">Extras</h3>
+          <div class="mt8" style="display:grid;gap:10px">
+            <div class="row">
+              <div class="muted" data-i18n="remind_me">Daily reminder to save</div>
+              <label class="chip"><input type="checkbox" id="remToggle"> <span data-i18n="enabled">Enable</span></label>
+            </div>
+            <div class="row">
+              <div class="muted" data-i18n="ref_code">Referral code</div>
+              <button class="btn btn-ghost" id="copyRef">Copy</button>
+            </div>
+            <div>
+              <div class="muted">Notes</div>
+              <div class="row mt8">
+                <input id="noteInput" class="chip" placeholder="Add a quick note" style="flex:1">
+                <button class="btn btn-primary" id="addNote">Add</button>
+              </div>
+              <ul id="notes" class="mt8" style="padding-left:18px;margin:0"></ul>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="muted" style="text-align:center;margin-top:18px">CashPocket • Built for Students</footer>
+  </div>
+
+  <!-- Challenge Modal -->
+  <div class="modal" id="challengeModal" aria-hidden="true">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="chTitle">
+      <h3 id="chTitle">Create / Edit Challenge</h3>
+      <div class="field">
+        <label>Name</label>
+        <input id="chName" placeholder="e.g., Save for Exam Fees" />
+      </div>
+      <div class="field">
+        <label>Target Amount (₹)</label>
+        <input id="chTarget" type="number" min="100" step="50" value="500" />
+      </div>
+      <div class="field">
+        <label>Duration (days)</label>
+        <input id="chDays" type="number" min="7" step="1" value="15" />
+      </div>
+      <div class="row mt12">
+        <button class="btn btn-ghost" id="closeModal">Cancel</button>
+        <button class="btn btn-primary" id="saveChallenge">Save Challenge</button>
+      </div>
+      <div class="mt12">
+        <div class="muted">Your Challenges</div>
+        <div id="challengeList" class="mt8" style="display:grid;gap:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="confetti"></div>
+
+  <script>
+    // ---- State ----
+    const allowanceBaseline = 4918;
+    let remaining = 1865; // demo
+
+    // Challenge model
+    let challenges = JSON.parse(localStorage.getItem('cp_challenges')||'[]');
+    let activeId = localStorage.getItem('cp_active_challenge') || null;
+
+    // Notes & settings
+    let notes = JSON.parse(localStorage.getItem('cp_notes')||'[]');
+    let settings = JSON.parse(localStorage.getItem('cp_settings')||'{"reminder":false,"lang":"en"}');
+
+    // Leaderboard demo data
+    const sampleLB = {
+      college:[
+        {name:'Ananya', saved:780}, {name:'Rahul', saved:640}, {name:'Aman (you)', saved:610}, {name:'Priya', saved:540}, {name:'Harsh', saved:520}
+      ],
+      global:[
+        {name:'Meera', saved:980}, {name:'Aditya', saved:860}, {name:'Lina', saved:820}, {name:'Carlos', saved:790}, {name:'Aman (you)', saved:610}
+      ],
+      week:[
+        {name:'Aman (you)', saved:210}, {name:'Simran', saved:200}, {name:'Rohit', saved:190}, {name:'Fatima', saved:160}, {name:'Zubair', saved:150}
+      ]
+    };
+
+    // i18n
+    const i18n = {
+      en:{ allowance_title:'Allowance Overview', left_month:'left this month', baseline:'Avg allowance baseline: ₹4,918 😬', upi_summary:'UPI Spend Summary', spent_today:'spent today', add_note:'Add note', breakdown:'Budget Breakdown', loan_tracker:'Loan Tracker', add_loan:'Add another loan', save_today:'Save today & stay on track 😎', challenge_title:'Your Challenge', new_challenge:'New', you_are:"You're", there:'there', keep_going:'keep going', leaderboard:'Leaderboard', extras:'Extras', remind_me:'Daily reminder to save', enabled:'Enable', ref_code:'Referral code' },
+      hi:{ allowance_title:'भत्ता सारांश', left_month:'इस महीने शेष', baseline:'औसत भत्ता: ₹4,918 😬', upi_summary:'UPI खर्च सारांश', spent_today:'आज खर्च', add_note:'नोट जोड़ें', breakdown:'बजट विभाजन', loan_tracker:'ऋण ट्रैकर', add_loan:'एक और ऋण जोड़ें', save_today:'आज बचत करें 😎', challenge_title:'आपकी चुनौती', new_challenge:'नई', you_are:'आप', there:'तक', keep_going:'जारी रखें', leaderboard:'लीडरबोर्ड', extras:'अतिरिक्त', remind_me:'रोज़ाना रिमाइंडर', enabled:'सक्रिय', ref_code:'रेफरल कोड' }
+    };
+
+    // Elements
+    const elRemaining = document.getElementById('remaining');
+    const elAllowanceBar = document.getElementById('allowanceBar');
+    const elChallengeBar = document.getElementById('challengeBar');
+    const elChallengePct = document.getElementById('challengePct');
+    const elSaveNow = document.getElementById('saveNow');
+    const allowanceCard = document.getElementById('allowanceCard');
+    const badge = document.getElementById('badge');
+    const toast = document.getElementById('toast');
+    const todayPill = document.getElementById('todayPill');
+    const lbScope = document.getElementById('lbScope');
+    const leaders = document.getElementById('leaders');
+    const challengeName = document.getElementById('challengeName');
+    const noteInput = document.getElementById('noteInput');
+    const notesList = document.getElementById('notes');
+    const addNoteBtn = document.getElementById('addNoteBtn');
+    const addNote = document.getElementById('addNote');
+    const remToggle = document.getElementById('remToggle');
+    const langSel = document.getElementById('lang');
+
+    // Modal elements
+    const chModal = document.getElementById('challengeModal');
+    const openCh = document.getElementById('openChallenge');
+    const closeCh = document.getElementById('closeModal');
+    const saveCh = document.getElementById('saveChallenge');
+    const chName = document.getElementById('chName');
+    const chTarget = document.getElementById('chTarget');
+    const chDays = document.getElementById('chDays');
+    const chList = document.getElementById('challengeList');
+
+    function setToday(){
+      const d=new Date();
+      const opts={day:'2-digit',month:'short'};
+      todayPill.textContent = d.toLocaleDateString(undefined,opts);
+    }
+
+    // Toast
+    function showToast(title, subtitle){
+      toast.innerHTML = <strong>${title}</strong>${subtitle?<small>${subtitle}</small>:''};
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'), 2200);
+    }
+
+    // Confetti
+    function confetti(){
+      const host = document.getElementById('confetti');
+      for(let i=0;i<28;i++){
+        const s = document.createElement('span');
+        s.className='confetto';
+        const x = (Math.random()-0.5)*300; // horizontal spread
+        const y = - (Math.random()*220 + 160); // upward burst
+        const rot = (Math.random()-0.5)*540 + 'deg';
+        s.style.setProperty('--cx', x+'px');
+        s.style.setProperty('--cy', y+'px');
+        s.style.setProperty('--rot', rot);
+        s.style.left = '50%'; s.style.top = '25%';
+        s.style.background = ['#34d399','#60a5fa','#f472b6','#fbbf24'][Math.floor(Math.random()*4)];
+        s.style.animationDuration = (Math.random()*0.85+0.9)+'s';
+        host.appendChild(s);
+        setTimeout(()=>host.removeChild(s), 1700);
+      }
+    }
+
+    // Render Allowance
+    function renderAllowance(){
+      elRemaining.textContent = Math.max(0, Math.round(remaining));
+      const usedPct = Math.min(100, Math.max(0, ((allowanceBaseline - remaining) / allowanceBaseline) * 100));
+      elAllowanceBar.style.width = usedPct + '%';
+    }
+
+    // Mini line chart (sparkline)
+    const daySpend = [
+      { d: 'Mon', v: 220 }, { d: 'Tue', v: 180 }, { d: 'Wed', v: 260 },
+      { d: 'Thu', v: 150 }, { d: 'Fri', v: 312 }, { d: 'Sat', v: 190 }, { d: 'Sun', v: 210 }
+    ];
+    function renderChart(){
+      const svgW = 320, svgH = 120; const padL=10, padR=10, padT=10, padB=10; 
+      const w = svgW - padL - padR; const h = svgH - padT - padB;
+      const maxV = Math.max(...daySpend.map(p=>p.v)) + 60;
+      const stepX = w / (daySpend.length - 1);
+      const pts = daySpend.map((p,i)=>{
+        const x = padL + i*stepX;
+        const y = padT + (1 - (p.v / maxV)) * h;
+        return ${x},${y};
+      }).join(' ');
+      document.getElementById('chartLine').setAttribute('points', pts);
+      const dots = document.getElementById('chartDots'); dots.innerHTML='';
+      const labels = document.getElementById('chartLabels'); labels.innerHTML='';
+      daySpend.forEach((p,i)=>{
+        const x = padL + i*stepX;
+        const y = padT + (1 - (p.v / maxV)) * h;
+        const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',3); c.setAttribute('fill','#22c58b');
+        dots.appendChild(c);
+        const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x',x-8); t.setAttribute('y',118); t.textContent = p.d; labels.appendChild(t);
+      });
+    }
+
+    // Donut chart (Budget Breakdown)
+    const breakdown = [
+      {name:'Food', v: 42}, {name:'Rent', v: 26}, {name:'Outings', v: 18}, {name:'Misc', v: 14}
+    ];
+    function renderDonut(){
+      const cv = document.getElementById('donut');
+      const ctx = cv.getContext('2d');
+      const cx = cv.width/2, cy = cv.height/2, r = 60; let start = -Math.PI/2;
+      const colors = ['#22c58b','#60a5fa','#f472b6','#f59e0b'];
+      const total = breakdown.reduce((a,b)=>a+b.v,0);
+      ctx.clearRect(0,0,cv.width,cv.height);
+      breakdown.forEach((seg,i)=>{
+        const ang = (seg.v/total)*Math.PI*2;
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,start+ang); ctx.closePath(); ctx.fillStyle=colors[i%colors.length]; ctx.fill();
+        start += ang;
+      });
+      // inner cut
+      ctx.globalCompositeOperation='destination-out';
+      ctx.beginPath(); ctx.arc(cx,cy,38,0,Math.PI*2); ctx.fill();
+      ctx.globalCompositeOperation='source-over';
+      // legend
+      const legend = breakdown.map((s,i)=><span style="display:inline-flex;align-items:center;gap:6px;margin-right:12px"><span style="width:12px;height:12px;background:${colors[i%colors.length]};display:inline-block;border-radius:3px"></span>${s.name} ${s.v}%</span>).join('');
+      document.getElementById('breakdownLegend').innerHTML = legend;
+    }
+
+    // Loan radial
+    function renderLoan(){
+      const loanPct = 75; // demo
+      const r = 38; const c = 2 * Math.PI * r; const dash = (loanPct/100) * c;
+      document.getElementById('loanArc').setAttribute('stroke-dasharray', dash + ' ' + (c - dash));
+      document.getElementById('loanPct').textContent = loanPct + '%';
+    }
+
+    // Leaderboard
+    function renderLeaderboard(scope){
+      leaders.innerHTML='';
+      const data = [...sampleLB[scope]]; // clone
+      data.sort((a,b)=>b.saved-a.saved);
+      data.slice(0,10).forEach((row,idx)=>{
+        const div = document.createElement('div');
+        div.className = 'lb-row';
+        const left = document.createElement('div');
+        const right = document.createElement('div');
+        let medal = '';
+        if(idx===0) medal = '<span class="medal gold">1</span>'; else if(idx===1) medal='<span class="medal silver">2</span>'; else if(idx===2) medal='<span class="medal bronze">3</span>';
+        left.innerHTML = ${medal} <span style="margin-left:${medal?8:0}px">${row.name}</span>;
+        right.innerHTML = ₹${row.saved};
+        div.appendChild(left); div.appendChild(right);
+        leaders.appendChild(div);
+      });
+    }
+
+    // Challenges
+    function getActive(){ return challenges.find(c=>c.id===activeId) || null; }
+
+    function ensureDefaultChallenge(){
+      if(challenges.length===0){
+        const def = {id: String(Date.now()), name:'₹500 Challenge', target:500, saved:225, start:Date.now(), days:15};
+        challenges.push(def); activeId = def.id; persist();
+      }
+    }
+
+    function persist(){
+      localStorage.setItem('cp_challenges', JSON.stringify(challenges));
+      if(activeId) localStorage.setItem('cp_active_challenge', activeId);
+      localStorage.setItem('cp_notes', JSON.stringify(notes));
+      localStorage.setItem('cp_settings', JSON.stringify(settings));
+    }
+
+    function renderActiveChallenge(){
+      const ch = getActive(); if(!ch) return;
+      challengeName.textContent = ch.name;
+      const pct = Math.min(100, Math.round((ch.saved/ch.target)*100));
+      elChallengeBar.style.width = pct + '%';
+      elChallengePct.textContent = pct;
+      const done = pct>=100;
+      document.querySelectorAll('[data-save], #saveNow').forEach(b=>b.disabled = done);
+      badge.style.display = done ? 'inline-block' : 'none';
+      if(done) confetti();
+    }
+
+    function openModal(){ chModal.classList.add('open'); renderChallengeList(); }
+    function closeModal(){ chModal.classList.remove('open'); }
+
+    function renderChallengeList(){
+      chList.innerHTML = '';
+      challenges.forEach(c=>{
+        const row = document.createElement('div');
+        row.className = 'lb-row';
+        row.innerHTML = <div><b>${c.name}</b><div class="muted">₹${c.saved} / ₹${c.target}</div></div>;
+        const actions = document.createElement('div');
+        const pick = document.createElement('button'); pick.className='btn btn-ghost'; pick.textContent = c.id===activeId? 'Active' : 'Make Active';
+        pick.onclick = ()=>{ activeId = c.id; persist(); renderActiveChallenge(); showToast('Challenge Active', c.name); };
+        const del = document.createElement('button'); del.className='btn btn-ghost'; del.textContent='Delete';
+        del.onclick = ()=>{ challenges = challenges.filter(x=>x.id!==c.id); if(activeId===c.id) activeId = challenges[0]?.id||null; persist(); renderChallengeList(); renderActiveChallenge(); };
+        actions.appendChild(pick); actions.appendChild(del);
+        row.appendChild(actions); chList.appendChild(row);
+      });
+    }
+
+    function saveChallenge(){
+      const name = chName.value.trim() || 'New Challenge';
+      const target = Math.max(100, parseInt(chTarget.value||'500',10));
+      const days = Math.max(7, parseInt(chDays.value||'15',10));
+      const ch = {id:String(Date.now()), name, target, saved:0, start:Date.now(), days};
+      challenges.push(ch); activeId = ch.id; persist(); renderActiveChallenge(); renderChallengeList(); closeModal();
+      showToast('Challenge created', ${name} • ₹${target});
+    }
+
+    // Save handlers
+    function handleSave(amount){
+      const ch = getActive(); if(!ch) return;
+      if((ch.saved)>=ch.target) return;
+      remaining = Math.max(0, remaining - amount);
+      ch.saved = Math.min(ch.target, ch.saved + amount);
+      persist();
+      renderAllowance();
+      renderActiveChallenge();
+      allowanceCard.classList.add('ring'); setTimeout(()=>allowanceCard.classList.remove('ring'), 700);
+      const pct = Math.round((ch.saved/ch.target)*100);
+      showToast(Saved ₹${amount}!, ${pct}% of your ${ch.name});
+    }
+
+    // Notes
+    function renderNotes(){
+      notesList.innerHTML='';
+      notes.slice().reverse().forEach((n,idx)=>{
+        const li = document.createElement('li'); li.textContent = n; notesList.appendChild(li);
+      });
+    }
+
+    // Referral
+    function referralCode(){
+      let code = localStorage.getItem('cp_ref');
+      if(!code){ code = 'CP-' + Math.random().toString(36).substring(2,8).toUpperCase(); localStorage.setItem('cp_ref', code); }
+      return code;
+    }
+
+    // Language
+    function applyLang(){
+      const dict = i18n[settings.lang]||i18n.en;
+      document.querySelectorAll('[data-i18n]').forEach(el=>{
+        const k = el.getAttribute('data-i18n');
+        if(dict[k]) el.textContent = dict[k];
+      });
+    }
+
+    // Wire-up events
+    document.querySelectorAll('[data-save]').forEach(btn=>btn.addEventListener('click', ()=>handleSave(parseInt(btn.dataset.save,10))));
+    elSaveNow.addEventListener('click', ()=>handleSave(50));
+    document.getElementById('viewLB').addEventListener('click', ()=>showToast('Opening…','Full leaderboard coming soon'));
+    lbScope.addEventListener('change', ()=>renderLeaderboard(lbScope.value));
+    openCh.addEventListener('click', openModal); closeCh.addEventListener('click', closeModal); saveCh.addEventListener('click', saveChallenge);
+    addNote.addEventListener('click', ()=>{ const v = noteInput.value.trim(); if(!v) return; notes.push(v); noteInput.value=''; persist(); renderNotes(); showToast('Note added'); });
+    addNoteBtn.addEventListener('click', ()=>document.getElementById('noteInput').focus());
+    document.getElementById('copyRef').addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(referralCode()); showToast('Referral copied', referralCode()); } catch(e){ showToast('Copy failed'); } });
+    remToggle.addEventListener('change', ()=>{ settings.reminder = remToggle.checked; persist(); showToast('Reminder', settings.reminder? 'Enabled':'Disabled'); });
+    langSel.addEventListener('change', ()=>{ settings.lang = langSel.value; persist(); applyLang(); });
+
+    // Init
+    function init(){
+      setToday(); ensureDefaultChallenge();
+      langSel.value = settings.lang; remToggle.checked = !!settings.reminder; applyLang();
+      document.getElementById('greet').textContent = settings.lang==='hi' ? 'शुभ प्रभात 👋 अमन' : 'Good morning 👋 Aman';
+      renderAllowance(); renderChart(); renderDonut(); renderLoan(); renderLeaderboard('college'); renderActiveChallenge(); renderNotes();
+    }
+
+    init();
+  </script>
+</body>
+</html>
